@@ -1,0 +1,407 @@
+{
+  "id": "pgemaConversa001",
+  "name": "ProtoGema · Conversación",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 💎 ProtoGema · Conversación\nEl portal envía el mensaje con la ficha de sesión del perfil.\n1. La base reúne el perfil, la memoria y la agenda de ESA persona.\n2. Gemini responde con un **plan JSON** (respuesta + acciones).\n3. Si el modelo principal falla, se prueba el de respaldo.\n4. La base aplica las acciones, detecta choques y guarda el chat.",
+        "height": 210,
+        "width": 520,
+        "color": 6
+      },
+      "id": "7286676b-dcfe-5470-aef8-e4e524cfe002",
+      "name": "Nota conversación",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gema/hablar",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "397d2008-2cbf-5b44-810d-e715022eae4f",
+      "name": "Mensaje recibido",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        100
+      ],
+      "webhookId": "4eb2f371-3fa3-5c04-b618-01449b671bb5"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT gema.contexto($1::jsonb) AS c;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ token: $json.headers['x-gema-token'] || '', texto: String(($json.body || {}).texto || '').slice(0, 3000) }) }}"
+        }
+      },
+      "id": "be520625-9013-53a0-894d-f86c7b42dbdf",
+      "name": "Reunir contexto",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgemaAlmacen0001",
+          "name": "Almacén ProtoGema"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma la consulta para Gemini con la personalidad, la memoria y la agenda de ESTE perfil.\nconst c = $input.first().json.c || {};\nif (!c.ok) {\n  const avisos = {\n    sesion: 'Tu sesión expiró. Vuelve a elegir tu perfil.',\n    sin_clave: 'Aún no hay una clave de Gemini configurada. Ve a Ajustes ▸ Inteligencia y pega una.',\n    vacio: 'Escríbeme algo y te ayudo.',\n  };\n  return [{ json: { listo: false, respuesta: avisos[c.motivo] || 'No pude leer tu mensaje.', motivo: c.motivo || 'error' } }];\n}\n\nconst p = c.perfil || {};\nconst tonos = {\n  cercano: 'cálido y cercano; tutea y usa su nombre de vez en cuando',\n  profesional: 'formal, preciso y respetuoso; trata de usted',\n  motivador: 'enérgico y animador; celebra los avances y empuja a cumplir metas',\n  directo: 'muy breve y al grano; frases cortas, sin rodeos',\n  divertido: 'relajado y con humor ligero; algún emoji ocasional',\n};\n\nconst fila = (e) => `#${e.id} | ${e.inicio} → ${e.fin} | ${e.titulo} | ${e.tipo} | importancia ${e.importancia} | avisos: ${e.avisos_texto}${e.lugar ? ' | lugar: ' + e.lugar : ''}`;\nconst agenda = (c.agenda || []).map(fila).join('\\n') || '(vacía)';\nconst recientes = (c.recientes || []).map((e) => `#${e.id} ${e.titulo} (${e.estado})`).join(', ') || 'ninguna';\nconst recuerdos = (c.recuerdos || []).map((r) => '- ' + r).join('\\n') || '- (todavía nada)';\n\nconst sistema = `Eres ProtoGema, asistente personal de ${p.nombre}. Cada persona de la casa tiene su propia ProtoGema y tú solo conoces a ${p.nombre}.\nHoy es ${c.ahora} (zona horaria ${c.zona}). En formato ISO: ${c.ahora_iso}.\n\nPERSONALIDAD: habla en español con un estilo ${tonos[p.tono] || tonos.cercano}.\nIntereses de ${p.nombre}: ${(p.intereses || []).join(', ') || 'no los ha dicho'}. Úsalos para tus ejemplos cuando venga al caso.\nSobre ${p.nombre}: ${p.sobre_mi || '(no ha escrito nada)'}\nLo que ya sabes de ${p.nombre}:\n${recuerdos}\nSu franja activa del día: ${p.franja_inicio} a ${p.franja_fin}. Avisos por defecto: ${(p.avisos_defecto || []).join(', ')} minutos antes.\n\nAGENDA PENDIENTE (id | inicio → fin | título | categoría | importancia | avisos):\n${agenda}\nCerradas hace poco: ${recientes}\n\nCÓMO RESPONDES: siempre un JSON con \"respuesta\" (lo que lee ${p.nombre}) y \"acciones\" (lista, puede ir vacía).\nAcciones posibles:\n- \"crear\": titulo, inicio (\"YYYY-MM-DDTHH:MM\" en hora local), minutos (duración; 60 si no se sabe), categoria (clase, examen, entrega, reunion, personal, salud u otro), importancia (1 baja, 2 normal, 3 alta; los exámenes y entregas suelen ser 3), avisos (minutos antes; solo si pide cuándo avisar, por ejemplo \"un día antes\" = 1440), lugar y notas si los menciona.\n- \"editar\": id y SOLO los campos que cambian (para mover algo, el nuevo inicio).\n- \"cancelar\": id.   - \"completar\": id (cuando dice que ya lo hizo).\n- \"recordar\": dato (algo estable sobre la persona: gustos, horarios, metas, materias; en tercera persona y corto).\nREGLAS:\n1. Calcula las fechas relativas (\"mañana\", \"el jueves\", \"en 2 horas\") a partir de la fecha de hoy. Nunca agendes en el pasado.\n2. Usa solo ids que existan en la agenda. Si no sabes a cuál se refiere o falta la hora de algo que quiere agendar, pregunta y no hagas acciones.\n3. Para preguntas como \"¿qué tengo mañana?\" responde con la agenda, ordenada por hora, sin acciones.\n4. En \"respuesta\" confirma lo que hiciste con fecha y hora en palabras (\"el jueves 12 a las 8:00 a. m.\"). No menciones ids, JSON ni detalles técnicos.\n5. Si te piden algo que no es de agenda (estudiar, explicar, redactar), ayuda con gusto y de forma clara.\n6. Formato: texto breve, puedes usar **negritas** y listas con guiones. No uses rayas largas.`;\n\nconst contenidos = [];\nfor (const m of c.historial || []) {\n  contenidos.push({ role: m.rol === 'yo' ? 'user' : 'model', parts: [{ text: m.texto }] });\n}\ncontenidos.push({ role: 'user', parts: [{ text: c.texto }] });\n// Gemini exige que la conversación empiece con el usuario\nwhile (contenidos.length && contenidos[0].role !== 'user') contenidos.shift();\n\nconst cuerpo = {\n  systemInstruction: { parts: [{ text: sistema }] },\n  contents: contenidos,\n  generationConfig: {\n    temperature: 0.6,\n    responseMimeType: 'application/json',\n    responseSchema: {\n      type: 'OBJECT',\n      properties: {\n        respuesta: { type: 'STRING' },\n        acciones: {\n          type: 'ARRAY',\n          items: {\n            type: 'OBJECT',\n            properties: {\n              tipo: { type: 'STRING', enum: ['crear', 'editar', 'cancelar', 'completar', 'recordar'] },\n              id: { type: 'INTEGER' },\n              titulo: { type: 'STRING' },\n              inicio: { type: 'STRING' },\n              minutos: { type: 'INTEGER' },\n              categoria: { type: 'STRING' },\n              importancia: { type: 'INTEGER' },\n              avisos: { type: 'ARRAY', items: { type: 'INTEGER' } },\n              lugar: { type: 'STRING' },\n              notas: { type: 'STRING' },\n              dato: { type: 'STRING' },\n            },\n            required: ['tipo'],\n          },\n        },\n      },\n      required: ['respuesta', 'acciones'],\n    },\n  },\n};\n\nconst api = (c.api || 'https://generativelanguage.googleapis.com/v1beta').replace(/\\/$/, '');\nreturn [{ json: {\n  listo: true,\n  uid: c.uid,\n  clave: c.clave,\n  url: `${api}/models/${c.modelo}:generateContent`,\n  url_respaldo: `${api}/models/${c.respaldo}:generateContent`,\n  cuerpo,\n} }];\n"
+      },
+      "id": "d3aabcd4-9b24-5843-add6-7561c8bf50fb",
+      "name": "Preparar consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "118f8ad2-c4ef-547c-adfd-043f097e9b40",
+              "leftValue": "={{ $json.listo }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "86d34712-3b1a-5584-805e-61d42d54e03f",
+      "name": "¿Se puede pensar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "={{ $json.clave }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.cuerpo) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "id": "67c5c1c7-24e5-59a1-9dc9-10ab2f6b79db",
+      "name": "Gemini principal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5960e686-5bd4-5da9-ae8a-b00b32bdb850",
+              "leftValue": "={{ $json.statusCode }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              },
+              "rightValue": 200
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "73e18cbd-930b-5ce9-87f9-aa605afa8dd3",
+      "name": "¿Respondió?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Preparar consulta').first().json.url_respaldo }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "={{ $('Preparar consulta').first().json.clave }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('Preparar consulta').first().json.cuerpo) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 90000
+        }
+      },
+      "id": "bcff1b44-307e-5575-87ad-c50f4ef746cd",
+      "name": "Gemini de respaldo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Interpreta lo que devolvió Gemini (principal o respaldo) y lo deja listo para la base de datos.\nconst r = $input.first().json;\nconst previo = $('Preparar consulta').first().json;\nconst estado = Number(r.statusCode || 0);\nconst motivo = (r.body && r.body.error && r.body.error.message) || '';\n\nlet respuesta = '';\nlet acciones = [];\nif (estado === 200) {\n  const partes = (((r.body.candidates || [])[0] || {}).content || {}).parts || [];\n  const texto = partes.filter((x) => !x.thought).map((x) => x.text || '').join('').trim();\n  try {\n    const plan = JSON.parse(texto.replace(/^```(json)?/i, '').replace(/```$/, ''));\n    respuesta = String(plan.respuesta || '').trim();\n    acciones = Array.isArray(plan.acciones) ? plan.acciones.slice(0, 12) : [];\n  } catch (e) {\n    respuesta = texto || 'No pude ordenar mis ideas esta vez. ¿Me lo repites con otras palabras?';\n  }\n} else if (/API key|API_KEY|PERMISSION_DENIED/i.test(motivo) || estado === 401 || estado === 403) {\n  respuesta = 'Tu clave de Gemini no funciona. Revísala en Ajustes ▸ Inteligencia.';\n} else if (estado === 429) {\n  respuesta = 'Llegaste al límite gratuito de Gemini por ahora. Espera un minuto y vuelve a intentarlo.';\n} else if (estado === 0) {\n  respuesta = 'No pude conectarme con Gemini. Revisa tu conexión a internet.';\n} else {\n  respuesta = 'Gemini no respondió esta vez (' + estado + '). Inténtalo de nuevo en un momento.';\n}\n\n// \"tipo\" de la IA es la acción; la categoría del evento viaja aparte\nacciones = acciones\n  .filter((a) => a && typeof a === 'object' && a.tipo)\n  .map((a) => {\n    const { tipo, categoria, ...resto } = a;\n    return { ...resto, accion: tipo, ...(categoria ? { tipo: String(categoria).toLowerCase() } : {}) };\n  });\n\nreturn [{ json: { paquete: JSON.stringify({ uid: previo.uid, respuesta, acciones }) } }];\n"
+      },
+      "id": "262f0c7c-dec3-52a7-99da-22522314b01e",
+      "name": "Leer plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT gema.cerrar_turno($1::jsonb) AS r;",
+        "options": {
+          "queryReplacement": "={{ $json.paquete }}"
+        }
+      },
+      "id": "ca8581bd-a6e1-5e7b-9d27-5fd6ffc6aa4d",
+      "name": "Aplicar y guardar",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1780,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgemaAlmacen0001",
+          "name": "Almacén ProtoGema"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.r }}",
+        "options": {}
+      },
+      "id": "01164fb3-b812-5b9a-bf6f-938f4cf0ee17",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { respuesta: $json.respuesta, cambios: 0, motivo: $json.motivo } }}",
+        "options": {}
+      },
+      "id": "a45d527c-acdf-5db5-9ab5-cdd64b29ab4d",
+      "name": "Responder aviso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "Mensaje recibido": {
+      "main": [
+        [
+          {
+            "node": "Reunir contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reunir contexto": {
+      "main": [
+        [
+          {
+            "node": "Preparar consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar consulta": {
+      "main": [
+        [
+          {
+            "node": "¿Se puede pensar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se puede pensar?": {
+      "main": [
+        [
+          {
+            "node": "Gemini principal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder aviso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini principal": {
+      "main": [
+        [
+          {
+            "node": "¿Respondió?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Respondió?": {
+      "main": [
+        [
+          {
+            "node": "Leer plan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gemini de respaldo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini de respaldo": {
+      "main": [
+        [
+          {
+            "node": "Leer plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer plan": {
+      "main": [
+        [
+          {
+            "node": "Aplicar y guardar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aplicar y guardar": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "f738b31e-c732-4b5b-9143-cfc8c7b60e66",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

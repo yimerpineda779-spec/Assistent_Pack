@@ -1,0 +1,9 @@
+OBJETIVOS CUMPLIDOS POR CORTANA (v1.2)
+1. Asistente de IA hecha en n8n, mas simple que Zoe: sin Telegram ni ngrok.
+2. Ejecutable con doble clic y portable con Docker a cualquier PC con Windows.
+3. Interfaz de chat propia, intuitiva para todo publico: el usuario nunca ve n8n ni escribe localhost.
+4. Personalizada por usuario: clave gratuita de Gemini propia, tono a elegir y temas de interes.
+5. Arranque sin errores: espera a que todo este listo antes de abrir la ventana (problema que tenia Zoe).
+6. Agenda inteligente en PostgreSQL: agendar, consultar, modificar y cancelar actividades en lenguaje natural.
+7. Recordatorios: aviso previo y aviso a la hora exacta, con ventana propia en Windows.
+8. Documentacion completa: Manual de Usuario y Documentacion Tecnica en PDF con normas APA.

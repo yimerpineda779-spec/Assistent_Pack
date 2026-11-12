@@ -1,0 +1,10 @@
+{
+  "name": "ProtoGema",
+  "short_name": "ProtoGema",
+  "description": "Asistente personal con agenda inteligente para cada perfil",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0b10",
+  "theme_color": "#0c0b10",
+  "icons": [{ "src": "gema.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

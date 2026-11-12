@@ -1,0 +1,19 @@
+# Claves locales (el lanzador crea .env la primera vez; el modelo es .env.example)
+.env
+.env.*
+!.env.example
+
+# Registros de ejecución del lanzador y de n8n
+logs/
+*.log
+
+# Datos locales
+*.sqlite
+respaldo*.sql
+
+# Archivos del sistema y del editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+~$*

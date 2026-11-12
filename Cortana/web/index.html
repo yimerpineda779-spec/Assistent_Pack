@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cortana</title>
+  <link rel="icon" href="cortana.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+  <!-- Pantalla de espera: mientras el "cerebro" termina de arrancar -->
+  <section id="pantalla-espera" class="pantalla activa" aria-live="polite">
+    <div class="espera">
+      <div class="orbe orbe-grande pulso"></div>
+      <h1>Cortana se está despertando…</h1>
+      <p id="texto-espera">Esto toma unos segundos.</p>
+    </div>
+  </section>
+
+  <!-- Asistente de bienvenida / personalización -->
+  <section id="pantalla-config" class="pantalla">
+    <div class="tarjeta-config">
+      <div class="pasos" aria-hidden="true">
+        <span class="punto activo"></span><span class="punto"></span><span class="punto"></span>
+      </div>
+
+      <!-- Paso 1 -->
+      <div class="paso activo" data-paso="1">
+        <div class="orbe orbe-mediano"></div>
+        <h2 id="titulo-bienvenida">¡Hola! Soy Cortana</h2>
+        <p class="sub">Voy a ser tu asistente personal. Antes de empezar, cuéntame un poco de ti.</p>
+        <label class="campo">
+          <span>¿Cómo te llamas?</span>
+          <input id="campo-nombre" type="text" maxlength="40" placeholder="Tu nombre" autocomplete="given-name">
+        </label>
+        <div class="acciones">
+          <button class="btn primario" data-ir="2">Continuar</button>
+        </div>
+      </div>
+
+      <!-- Paso 2 -->
+      <div class="paso" data-paso="2">
+        <h2>¿Cómo quieres que te hable?</h2>
+        <p class="sub">Elige el estilo que más te guste. Puedes cambiarlo cuando quieras.</p>
+        <div id="lista-tonos" class="tonos" role="radiogroup" aria-label="Tono de Cortana"></div>
+        <div class="acciones">
+          <button class="btn" data-ir="1">Atrás</button>
+          <button class="btn primario" data-ir="3">Continuar</button>
+        </div>
+      </div>
+
+      <!-- Paso 3 -->
+      <div class="paso" data-paso="3">
+        <h2>¿Qué temas te interesan?</h2>
+        <p class="sub">Elige los que quieras. Así te daré ejemplos que tengan que ver contigo.</p>
+        <div id="lista-intereses" class="chips"></div>
+        <form id="form-interes" class="agregar-interes">
+          <input id="campo-interes" type="text" maxlength="30" placeholder="Agregar otro tema…">
+          <button class="btn" type="submit">Agregar</button>
+        </form>
+        <div class="acciones">
+          <button class="btn" data-ir="2">Atrás</button>
+          <button id="btn-terminar" class="btn primario">¡Listo, empezar!</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Chat -->
+  <section id="pantalla-chat" class="pantalla">
+    <header class="cabecera">
+      <div class="identidad">
+        <div class="orbe orbe-chico"></div>
+        <div>
+          <strong>Cortana</strong>
+          <small id="estado-chat">En línea</small>
+        </div>
+      </div>
+      <div class="botones-cabecera">
+        <button id="btn-calendario" class="btn-icono" title="Calendario de actividades" aria-label="Calendario de actividades">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>
+        </button>
+        <button id="btn-nueva" class="btn-icono" title="Nueva conversación" aria-label="Nueva conversación">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button id="btn-ajustes" class="btn-icono" title="Personalizar a Cortana" aria-label="Personalizar a Cortana">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main id="mensajes" class="mensajes" aria-live="polite">
+      <div id="vacio" class="vacio">
+        <div class="orbe orbe-grande"></div>
+        <h2 id="saludo"></h2>
+        <p>Pregúntame lo que quieras. Aquí tienes algunas ideas:</p>
+        <div id="sugerencias" class="sugerencias"></div>
+      </div>
+    </main>
+
+    <form id="form-chat" class="barra-entrada">
+      <textarea id="entrada" rows="1" placeholder="Escribe tu mensaje…" aria-label="Mensaje"></textarea>
+      <button id="btn-enviar" class="btn-enviar" type="submit" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+  </section>
+
+  <!-- Calendario de actividades: por fecha (mes) y por hora (día) -->
+  <section id="pantalla-calendario" class="pantalla">
+    <header class="cabecera">
+      <div class="identidad">
+        <button id="btn-volver-chat" class="btn-icono" title="Volver al chat" aria-label="Volver al chat">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H6M11 6l-6 6 6 6"/></svg>
+        </button>
+        <div>
+          <strong>Calendario</strong>
+          <small>Tus actividades por fecha y por hora</small>
+        </div>
+      </div>
+      <div class="botones-cabecera">
+        <button id="btn-mes-anterior" class="btn-icono" title="Mes anterior" aria-label="Mes anterior">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+        </button>
+        <button id="btn-hoy" class="btn">Hoy</button>
+        <button id="btn-mes-siguiente" class="btn-icono" title="Mes siguiente" aria-label="Mes siguiente">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="calendario">
+      <section class="tarjeta-cal">
+        <h2 id="titulo-mes" class="titulo-mes"></h2>
+        <div class="dias-semana"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
+        <div id="rejilla-mes" class="rejilla-mes"></div>
+        <p id="estado-cal" class="estado-cal"></p>
+      </section>
+
+      <section class="tarjeta-cal">
+        <h2 id="titulo-dia" class="titulo-mes"></h2>
+        <div id="horas-dia" class="horas-dia"></div>
+      </section>
+    </main>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

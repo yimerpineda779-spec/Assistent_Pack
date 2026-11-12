@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="es" data-gema="rubi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProtoGema</title>
+<meta name="description" content="ProtoGema: asistente personal con agenda inteligente para cada perfil.">
+<meta name="theme-color" content="#0c0b10">
+<link rel="icon" href="gema.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="gema.css">
+</head>
+<body>
+
+<!-- La gema tallada se reutiliza en varias pantallas -->
+<template id="plantilla-gema">
+  <svg class="gema-logo" viewBox="0 0 100 100" aria-hidden="true">
+    <polygon class="faceta f1" points="8,40 30,18 40,40"/>
+    <polygon class="faceta f2" points="30,18 70,18 60,40 40,40"/>
+    <polygon class="faceta f3" points="70,18 92,40 60,40"/>
+    <polygon class="faceta f4" points="8,40 40,40 50,92"/>
+    <polygon class="faceta f5" points="40,40 60,40 50,92"/>
+    <polygon class="faceta f6" points="60,40 92,40 50,92"/>
+    <path class="arista" d="M8 40 30 18h40l22 22-42 52Z M8 40h84 M30 18l10 22 10 52 10-52 10-22"/>
+  </svg>
+</template>
+
+<!-- 1. Mientras el cerebro (n8n) despierta -->
+<section id="escena-despertar" class="escena centro activa" aria-live="polite">
+  <div class="despertar">
+    <div class="tallando" data-gema-svg></div>
+    <h1>Proto<span>Gema</span></h1>
+    <div class="barra-talla"><i></i></div>
+    <p id="texto-despertar" class="suave">Puliendo tu gema…</p>
+  </div>
+</section>
+
+<!-- 2. ¿Quién eres? -->
+<section id="escena-perfiles" class="escena centro">
+  <div class="perfiles">
+    <div data-gema-svg></div>
+    <span class="rotulo">ProtoGema · asistente personal</span>
+    <h1>¿Quién usa ProtoGema hoy?</h1>
+    <p class="suave">Cada persona tiene su propia gema: su agenda, sus avisos y su forma de hablar.</p>
+    <div id="rejilla-perfiles" class="rejilla-perfiles"></div>
+  </div>
+</section>
+
+<!-- 3. Forja: crear un perfil nuevo -->
+<section id="escena-forja" class="escena centro">
+  <div class="forja tallado">
+    <aside class="forja-lado">
+      <div id="forja-avatar" class="avatar mediano">?</div>
+      <h2>Forja tu gema</h2>
+      <p class="suave">ProtoGema se adapta a ti: su color, su tono y lo que sabe de tu día a día.</p>
+      <ol id="facetas-progreso" class="facetas-progreso">
+        <li class="actual">Tu nombre y tu gema</li>
+        <li>Cómo te hablo</li>
+        <li>Inteligencia y avisos</li>
+        <li>Seguridad</li>
+      </ol>
+      <button class="boton fantasma chico" data-accion="volver-perfiles" type="button">← Volver a perfiles</button>
+    </aside>
+
+    <div class="forja-cuerpo">
+      <form class="paso activo" data-paso="1">
+        <span class="rotulo">Faceta 1 de 4</span>
+        <h3>¿Cómo te llamas?</h3>
+        <p class="suave">Así te saludaré y así aparecerá tu perfil.</p>
+        <label class="campo"><span>Nombre</span>
+          <input id="f-nombre" type="text" maxlength="40" placeholder="Ej.: Gabriel" autocomplete="given-name" required>
+        </label>
+        <span class="rotulo">Elige tu gema</span>
+        <div id="f-gemas" class="muestrario"></div>
+        <div class="acciones"><button class="boton brillante" type="submit">Siguiente</button></div>
+      </form>
+
+      <form class="paso" data-paso="2">
+        <span class="rotulo">Faceta 2 de 4</span>
+        <h3>¿Cómo quieres que te hable?</h3>
+        <div id="f-tonos" class="tonos"></div>
+        <span class="rotulo">Tus temas</span>
+        <div id="f-intereses" class="chips" style="margin:10px 0 12px"></div>
+        <label class="campo"><span>Algo sobre ti (opcional)</span>
+          <textarea id="f-sobre" maxlength="600" placeholder="Ej.: Tengo clases en la mañana y los sábados juego fútbol."></textarea>
+        </label>
+        <div class="acciones">
+          <button class="boton fantasma" type="button" data-atras="1">Atrás</button>
+          <button class="boton brillante" type="submit">Siguiente</button>
+        </div>
+      </form>
+
+      <form class="paso" data-paso="3">
+        <span class="rotulo">Faceta 3 de 4</span>
+        <h3>Conecta la inteligencia</h3>
+        <div id="f-bloque-clave">
+          <p class="suave">ProtoGema piensa con Google Gemini. La clave es gratis:</p>
+          <ol class="guia">
+            <li>Abre <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> e inicia sesión.</li>
+            <li>Pulsa <b>Create API key</b> y cópiala.</li>
+            <li>Pégala aquí y pulsa <b>Probar</b>.</li>
+          </ol>
+          <div class="fila">
+            <input id="f-clave" class="entrada" style="flex:1" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false">
+            <button id="f-probar" class="boton" type="button">Probar</button>
+          </div>
+          <p id="f-clave-estado" class="estado-linea"></p>
+          <label class="interruptor"><input id="f-clave-compartir" type="checkbox" checked> Compartirla con los demás perfiles de esta computadora</label>
+        </div>
+        <p id="f-clave-lista" class="estado-linea bien oculto">◆ Esta computadora ya tiene una clave de Gemini. Puedes seguir.</p>
+        <label class="campo"><span>Tu chat de Telegram (opcional) <a class="enlace-ayuda" href="telegram.html" target="_blank" rel="noopener">¿Cómo se hace?</a></span>
+          <input id="f-telegram" type="text" inputmode="numeric" maxlength="30" placeholder="Ej.: 123456789">
+          <small>Para recibir los avisos en tu teléfono. Lo puedes configurar después en Ajustes.</small>
+        </label>
+        <div class="acciones">
+          <button class="boton fantasma" type="button" data-atras="2">Atrás</button>
+          <button class="boton brillante" type="submit">Siguiente</button>
+        </div>
+      </form>
+
+      <form class="paso" data-paso="4">
+        <span class="rotulo">Faceta 4 de 4</span>
+        <h3>Protege tu perfil</h3>
+        <p class="suave">Si otras personas usan esta computadora, ponle un PIN de 4 números a tu gema. Es opcional.</p>
+        <label class="campo"><span>PIN (opcional)</span>
+          <input id="f-pin" type="password" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••" autocomplete="new-password">
+        </label>
+        <p id="f-error" class="estado-linea mal"></p>
+        <div class="acciones">
+          <button class="boton fantasma" type="button" data-atras="3">Atrás</button>
+          <button class="boton brillante" type="submit">◆ Forjar mi gema</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Taller: la pantalla principal -->
+<section id="escena-taller" class="escena">
+  <nav class="riel" aria-label="Secciones">
+    <div data-gema-svg></div>
+    <button class="riel-boton" data-ir="conversar" title="Conversar" aria-current="page">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>
+    </button>
+    <button class="riel-boton" data-ir="agenda" title="Agenda">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 6h16v14H4zM4 10h16M8 3v5M16 3v5"/></svg>
+    </button>
+    <button class="riel-boton" data-ir="avisos" title="Avisos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></svg>
+      <span id="globo-avisos" class="globo oculto">0</span>
+    </button>
+    <button class="riel-boton" data-ir="ajustes" title="Ajustes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><circle cx="12" cy="12" r="3"/></svg>
+    </button>
+    <div class="riel-pie">
+      <button class="riel-boton boton-luz" data-accion="luz" title="Cambiar a modo claro u oscuro">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+      </button>
+      <button id="riel-avatar" class="avatar chico" data-accion="cambiar-perfil" title="Cambiar de perfil">?</button>
+    </div>
+  </nav>
+
+  <main class="vistas">
+    <!-- Conversar -->
+    <section id="vista-conversar" class="vista activa">
+      <div class="chat">
+        <header class="chat-cabecera">
+          <div class="tallando" data-gema-svg style="width:42px"></div>
+          <div>
+            <h2 id="saludo">Hola</h2>
+            <p class="suave" id="sub-saludo">Pídeme que agende, mueva o cancele lo que necesites.</p>
+          </div>
+        </header>
+        <div id="hilo" class="hilo" aria-live="polite"></div>
+        <div id="sugerencias" class="sugerencias"></div>
+        <form id="redactor" class="redactor">
+          <textarea id="mensaje" rows="1" maxlength="3000" placeholder="Escribe aquí… (Enter para enviar)"></textarea>
+          <button class="boton brillante" type="submit" title="Enviar" aria-label="Enviar">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M3 11 21 3l-6 18-3-8z"/></svg>
+          </button>
+        </form>
+      </div>
+
+      <aside class="orbita" aria-label="Tu día">
+        <div class="proximo tallado" id="proximo"></div>
+        <div>
+          <span class="rotulo">Órbita de hoy</span>
+          <ul id="linea-dia" class="linea-dia"></ul>
+        </div>
+        <div>
+          <span class="rotulo">Pulso de 14 días</span>
+          <div id="pulso" class="pulso"></div>
+          <p class="tenue" style="font-size:.78rem;margin:8px 0 0">Más brillo = día más cargado. Borde claro = algo muy importante.</p>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Agenda semanal -->
+    <section id="vista-agenda" class="vista">
+      <header class="cabecera">
+        <div><span class="rotulo">Agenda</span><h2 id="titulo-semana">Esta semana</h2></div>
+        <div class="semana-nav">
+          <button class="boton chico" data-semana="-1" title="Semana anterior">◀</button>
+          <button class="boton chico" data-semana="0">Hoy</button>
+          <button class="boton chico" data-semana="1" title="Semana siguiente">▶</button>
+          <button class="boton brillante chico" data-accion="nueva-actividad">+ Nueva actividad</button>
+        </div>
+      </header>
+      <div class="leyenda">
+        <span data-tipo="clase">Clase</span><span data-tipo="examen">Examen</span><span data-tipo="entrega">Entrega</span>
+        <span data-tipo="reunion">Reunión</span><span data-tipo="personal">Personal</span><span data-tipo="salud">Salud</span><span data-tipo="otro">Otro</span>
+      </div>
+      <div class="semana-envoltura"><div id="semana" class="semana"></div></div>
+    </section>
+
+    <!-- Avisos -->
+    <section id="vista-avisos" class="vista">
+      <header class="cabecera">
+        <div><span class="rotulo">Bandeja</span><h2>Tus <em>avisos</em></h2></div>
+        <div class="fila">
+          <button class="boton chico" id="b-permiso" data-accion="permiso">Activar avisos del navegador</button>
+          <button class="boton chico" data-accion="leer-todo">Marcar todo como leído</button>
+        </div>
+      </header>
+      <div id="lista-avisos" class="lista-avisos"></div>
+    </section>
+
+    <!-- Ajustes -->
+    <section id="vista-ajustes" class="vista">
+      <header class="cabecera"><div><span class="rotulo">Tu perfil</span><h2>Ajustes de <em id="ajustes-nombre">tu gema</em></h2></div></header>
+      <div class="ajustes">
+        <form class="panel tallado" id="a-perfil">
+          <h3>Personalidad</h3>
+          <p class="suave">Cómo te llamo, qué color tiene tu gema y cómo te hablo.</p>
+          <label class="campo"><span>Nombre</span><input id="a-nombre" maxlength="40" required></label>
+          <span class="rotulo">Gema</span>
+          <div id="a-gemas" class="muestrario"></div>
+          <span class="rotulo">Tono</span>
+          <div id="a-tonos" class="tonos" style="margin-top:8px"></div>
+          <span class="rotulo">Temas que te interesan</span>
+          <div id="a-intereses" class="chips" style="margin:8px 0 12px"></div>
+          <label class="campo"><span>Sobre ti</span><textarea id="a-sobre" maxlength="600"></textarea></label>
+          <button class="boton brillante" type="submit">Guardar personalidad</button>
+        </form>
+
+        <form class="panel tallado" id="a-avisos">
+          <h3>Avisos y horario</h3>
+          <p class="suave">Cuándo te aviso si no digo otra cosa, y tu franja activa del día (la uso para sugerirte huecos libres).</p>
+          <span class="rotulo">Avisarme por defecto</span>
+          <div id="a-avisos-defecto" class="chips" style="margin:8px 0 14px"></div>
+          <div class="fila">
+            <label class="campo"><span>Mi día empieza</span><input id="a-franja-inicio" type="time"></label>
+            <label class="campo"><span>Mi día termina</span><input id="a-franja-fin" type="time"></label>
+          </div>
+          <label class="interruptor"><input id="a-destello" type="checkbox"> Destello matutino: un resumen de mi día cada mañana</label>
+          <label class="campo"><span>Mi chat de Telegram <a class="enlace-ayuda" href="telegram.html" target="_blank" rel="noopener">¿Cómo se hace?</a></span>
+            <input id="a-telegram" inputmode="numeric" maxlength="30" placeholder="Ej.: 123456789">
+            <small>Escríbele a <b>@userinfobot</b> en Telegram y copia el número "Id". Luego envía cualquier mensaje a tu bot de ProtoGema.</small>
+          </label>
+          <label class="campo"><span>Bot de Telegram de la casa (compartido)</span>
+            <input id="a-bot" type="password" placeholder="Token que te da @BotFather" autocomplete="off">
+            <small id="a-bot-estado">Créalo una vez con @BotFather (/newbot). Lo comparten todos los perfiles.</small>
+          </label>
+          <button class="boton brillante" type="submit">Guardar avisos</button>
+        </form>
+
+        <form class="panel tallado" id="a-ia">
+          <h3>Inteligencia</h3>
+          <p class="suave" id="a-ia-estado">Clave de Google Gemini.</p>
+          <label class="campo"><span>Nueva clave de Gemini</span>
+            <input id="a-clave" type="password" placeholder="AIza…" autocomplete="off" spellcheck="false">
+          </label>
+          <label class="interruptor"><input id="a-clave-propia" type="checkbox"> Usarla solo para mi perfil (si no, se comparte)</label>
+          <p id="a-clave-linea" class="estado-linea"></p>
+          <div class="fila">
+            <button class="boton brillante" type="submit">Probar y guardar</button>
+            <button class="boton fantasma chico" type="button" data-accion="quitar-clave-propia">Dejar de usar mi clave propia</button>
+          </div>
+        </form>
+
+        <div class="panel tallado">
+          <h3>Lo que sé de ti</h3>
+          <p class="suave">Datos que aprendí conversando contigo. Puedes borrar los que quieras.</p>
+          <ul id="a-recuerdos" class="recuerdos"></ul>
+          <div class="fila" style="margin-top:14px"><button class="boton peligro chico" data-accion="borrar-chat">Borrar el historial del chat</button></div>
+        </div>
+
+        <form class="panel tallado" id="a-seguridad">
+          <h3>Seguridad</h3>
+          <p class="suave" id="a-pin-estado">PIN de 4 números para entrar a tu perfil.</p>
+          <label class="campo"><span>Nuevo PIN (vacío = sin PIN)</span>
+            <input id="a-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="new-password">
+          </label>
+          <div class="fila entre">
+            <button class="boton brillante" type="submit">Guardar PIN</button>
+            <button class="boton peligro chico" type="button" data-accion="borrar-perfil">Borrar mi perfil</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+</section>
+
+<!-- Cajón: crear o editar una actividad -->
+<aside id="cajon" class="cajon" aria-hidden="true">
+  <form id="form-actividad">
+    <div class="fila entre"><h3 id="cajon-titulo">Nueva actividad</h3><button class="boton fantasma chico" type="button" data-accion="cerrar-cajon">✕</button></div>
+    <input type="hidden" id="e-id">
+    <label class="campo"><span>¿Qué es?</span><input id="e-titulo" maxlength="160" required placeholder="Ej.: Examen de Física"></label>
+    <div class="fila">
+      <label class="campo"><span>Día</span><input id="e-dia" type="date" required></label>
+      <label class="campo"><span>Hora</span><input id="e-hora" type="time" required></label>
+    </div>
+    <div class="fila">
+      <label class="campo"><span>Duración</span>
+        <select id="e-minutos">
+          <option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option>
+          <option value="60" selected>1 hora</option><option value="90">1 h 30 min</option><option value="120">2 horas</option>
+          <option value="180">3 horas</option><option value="240">4 horas</option><option value="480">8 horas</option>
+        </select>
+      </label>
+      <label class="campo"><span>Categoría</span>
+        <select id="e-tipo">
+          <option value="clase">Clase</option><option value="examen">Examen</option><option value="entrega">Entrega</option>
+          <option value="reunion">Reunión</option><option value="personal">Personal</option><option value="salud">Salud</option>
+          <option value="otro" selected>Otro</option>
+        </select>
+      </label>
+    </div>
+    <span class="rotulo">Importancia</span>
+    <div id="e-importancia" class="importancia" style="margin:8px 0 14px">
+      <button type="button" data-valor="1">◆ Baja</button><button type="button" data-valor="2" aria-pressed="true">◆◆ Normal</button><button type="button" data-valor="3">◆◆◆ Alta</button>
+    </div>
+    <span class="rotulo">Avisarme antes</span>
+    <div id="e-avisos" class="chips" style="margin:8px 0 14px"></div>
+    <label class="campo"><span>Lugar</span><input id="e-lugar" maxlength="120" placeholder="Opcional"></label>
+    <label class="campo"><span>Notas</span><textarea id="e-notas" maxlength="600" placeholder="Opcional"></textarea></label>
+    <p id="e-nota" class="estado-linea"></p>
+    <div class="fila entre">
+      <div class="fila" id="e-estado-botones">
+        <button class="boton chico" type="button" data-accion="marcar-hecho">✓ Hecho</button>
+        <button class="boton peligro chico" type="button" data-accion="cancelar-actividad">Cancelar actividad</button>
+      </div>
+      <button class="boton brillante" type="submit">Guardar</button>
+    </div>
+  </form>
+</aside>
+
+<!-- PIN -->
+<div id="velo-pin" class="velo oculto">
+  <div class="caja" style="text-align:center">
+    <div id="pin-avatar" class="avatar mediano" style="margin:0 auto"></div>
+    <h3 id="pin-nombre" style="margin-top:10px">Perfil</h3>
+    <p class="suave" style="margin:4px 0 0">Escribe tu PIN</p>
+    <div id="pin-puntos" class="pin-puntos"><i></i><i></i><i></i><i></i></div>
+    <div id="teclado" class="teclado"></div>
+    <button class="boton fantasma chico" style="margin-top:12px" data-accion="cerrar-pin">Cancelar</button>
+  </div>
+</div>
+
+<div id="destellos" class="destellos" aria-live="assertive"></div>
+
+<script src="gema.js"></script>
+</body>
+</html>

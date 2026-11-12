@@ -1,0 +1,19 @@
+# Configuración local con claves (la crea el lanzador)
+.env
+.env.*
+
+# Registros de los lanzadores
+registros/
+*.log
+
+# Respaldos y datos locales
+respaldo*.sql
+*.sqlite
+__pycache__/
+
+# Archivos del sistema y del editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+~$*

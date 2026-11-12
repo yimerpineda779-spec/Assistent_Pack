@@ -1,0 +1,206 @@
+{
+  "id": "pgemaVigia000001",
+  "name": "ProtoGema · Vigía de avisos",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 💎 ProtoGema · Vigía de avisos\nCada minuto:\n- crea los **avisos escalonados** que ya tocan (ej. 1 día, 1 hora y a la hora exacta),\n- crea el **Destello** (resumen de la mañana) de cada perfil,\n- envía por **Telegram** los avisos de quien vinculó su chat.\nEl panel muestra los mismos avisos en la campana y como notificación del navegador.",
+        "height": 210,
+        "width": 520,
+        "color": 6
+      },
+      "id": "69e9b35d-756d-5738-a69f-8320e4d8600c",
+      "name": "Nota vigía",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "2eab488d-7509-5531-83de-d81ceb7a9cd4",
+      "name": "Cada minuto",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM gema.vigilar();",
+        "options": {}
+      },
+      "id": "33eb768c-b281-5830-bfb3-a0c94cf2e348",
+      "name": "Revisar agendas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgemaAlmacen0001",
+          "name": "Almacén ProtoGema"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9fa6b3ba-ef6c-584f-96a0-e2998a145e7b",
+              "leftValue": "={{ $json.chat }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "efeda88e-de9c-53bb-965a-c7f089928e81",
+      "name": "¿Va a Telegram?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $json.bot }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chat, text: $json.texto }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "08c80961-b51b-5987-9a2f-afe65fd243b8",
+      "name": "Enviar a Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT gema.marcar_telegram($1::jsonb) AS r;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ id: $('¿Va a Telegram?').item.json.id, ok: $json.statusCode === 200 }) }}"
+        }
+      },
+      "id": "1b9b6a66-1a89-58ba-994b-38baef0e8135",
+      "name": "Marcar entrega",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        880,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pgemaAlmacen0001",
+          "name": "Almacén ProtoGema"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cada minuto": {
+      "main": [
+        [
+          {
+            "node": "Revisar agendas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar agendas": {
+      "main": [
+        [
+          {
+            "node": "¿Va a Telegram?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Va a Telegram?": {
+      "main": [
+        [
+          {
+            "node": "Enviar a Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Enviar a Telegram": {
+      "main": [
+        [
+          {
+            "node": "Marcar entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "3b1183da-7dbe-41f1-b156-bcde83988d5d",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

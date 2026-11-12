@@ -1,0 +1,16 @@
+# ProtoGema | ejemplo de configuración
+# No hace falta copiarlo: el lanzador crea el archivo .env real la primera vez.
+
+# Contraseña del almacén (PostgreSQL) y clave de cifrado de n8n (se generan solas)
+CLAVE_ALMACEN=
+CLAVE_CEREBRO=
+
+# Zona horaria para la agenda y los avisos
+ZONA_HORARIA=America/Caracas
+
+# Puertos propios de ProtoGema
+PUERTO_PROTOGEMA=4646
+PUERTO_N8N=5699
+
+# La clave de Gemini y el bot de Telegram NO van aquí:
+# se configuran desde la propia interfaz (cada perfil puede tener la suya).

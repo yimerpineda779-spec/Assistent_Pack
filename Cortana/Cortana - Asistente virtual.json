@@ -1,0 +1,207 @@
+{
+  "name": "Cortana - Asistente virtual",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hola 👋 Soy Cortana, tu asistente virtual. ¿En qué puedo ayudarte hoy?",
+        "options": {
+          "inputPlaceholder": "Escribe tu mensaje...",
+          "subtitle": "Tu asistente virtual",
+          "title": "Cortana",
+          "responseMode": "lastNode"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        784,
+        112
+      ],
+      "id": "54a30e6c-f1b1-464c-8a09-f10c22d4c5df",
+      "name": "Chat local",
+      "webhookId": "3d0c4926-6d94-4cbf-871c-a73ede81b09c"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=Eres Cortana, una asistente virtual personalizada: amable, eficiente y experta en ingeniería (sistemas, programación y ciberseguridd)."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1312,
+        272
+      ],
+      "id": "7d9bc1c8-ee94-422c-bea3-6d5894192fbd",
+      "name": "Zoe (AI Agent)"
+    },
+    {
+      "parameters": {
+        "modelName": "=models/gemini-3-flash-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        1232,
+        512
+      ],
+      "id": "2431b825-67f8-4789-8e47-b66ded8c7642",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "CY6zLKCEDlHNDeVS",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1392,
+        512
+      ],
+      "id": "460254f6-0933-4c2c-aede-390ad0f3463e",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 2.1,
+      "position": [
+        1552,
+        512
+      ],
+      "id": "8e8ab3b1-831c-4638-95ca-ce2eb13f4d5f",
+      "name": "Search the web in Tavily",
+      "credentials": {
+        "tavilyApi": {
+          "id": "QWqYUlOXFD4oDhaq",
+          "name": "Tavily account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Zoe\nArriba: **Chat local** (Fase B, sin Telegram).\nAbajo: **Telegram** (Fase A, necesita ngrok).\nAmbas entradas se convierten al mismo formato (chatInput, sessionId) y llegan al mismo agente.",
+        "height": 180,
+        "width": 300
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        464,
+        -112
+      ],
+      "id": "78afbb91-9d65-4d87-94f4-a1b3b31715d4",
+      "name": "Nota"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1728,
+        256
+      ],
+      "id": "d632e1ce-e6e5-4166-9c0a-aba5addfb9ab",
+      "name": "Responder en Chat"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Chat local": {
+      "main": [
+        [
+          {
+            "node": "Zoe (AI Agent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Zoe (AI Agent)": {
+      "main": [
+        [
+          {
+            "node": "Responder en Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Zoe (AI Agent)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Zoe (AI Agent)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search the web in Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "Zoe (AI Agent)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "versionId": "e3d2da05-b176-4ce9-880e-28c2069c2e1c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "23f36eb81ca543ea7739199dd22536140f738d922d0d77308ba2b4ea06bb182f"
+  },
+  "nodeGroups": [],
+  "id": "lNSNsfnTUtlsuT0q",
+  "tags": []
+}

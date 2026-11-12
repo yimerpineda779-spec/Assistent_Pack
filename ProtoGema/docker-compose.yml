@@ -1,0 +1,95 @@
+# =====================================================================
+#  ProtoGema | servicios en Docker
+#
+#    almacen     PostgreSQL con perfiles, agenda, avisos, memoria y chat
+#    estructura  aplica las tablas y funciones del almacén y termina
+#    cerebro     n8n con los 3 flujos (conversación, portal y vigía)
+#    portal      servidor en Python que entrega la interfaz y habla con n8n
+#
+#  Puertos propios de ProtoGema (no chocan con Cortana ni AsistentD):
+#    4646  interfaz de ProtoGema      (Cortana 8765, AsistentD 7340)
+#    5699  editor de n8n              (Cortana 5679, AsistentD 5690)
+# =====================================================================
+name: protogema
+
+services:
+  almacen:
+    image: postgres:17-alpine
+    container_name: protogema-almacen
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: protogema
+      POSTGRES_USER: protogema
+      POSTGRES_PASSWORD: ${CLAVE_ALMACEN:?Falta CLAVE_ALMACEN en .env (abre ProtoGema con el lanzador)}
+      TZ: ${ZONA_HORARIA:-America/Caracas}
+      PGTZ: ${ZONA_HORARIA:-America/Caracas}
+    command: ["postgres", "-c", "timezone=${ZONA_HORARIA:-America/Caracas}"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U protogema -d protogema"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+    # Sin puertos publicados: solo el cerebro habla con el almacén
+    volumes:
+      - protogema_almacen:/var/lib/postgresql/data
+
+  estructura:
+    image: postgres:17-alpine
+    container_name: protogema-estructura
+    restart: "no"
+    depends_on:
+      almacen:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${CLAVE_ALMACEN}
+    entrypoint: ["sh", "-c", "for f in /almacen/*.sql; do echo \"Aplicando $$f\"; psql -h almacen -U protogema -d protogema -v ON_ERROR_STOP=1 -q -f \"$$f\" || exit 1; done"]
+    volumes:
+      - ./almacen:/almacen:ro
+
+  cerebro:
+    image: n8nio/n8n:2.45.7
+    container_name: protogema-cerebro
+    restart: unless-stopped
+    depends_on:
+      estructura:
+        condition: service_completed_successfully
+    entrypoint: ["sh", "-c", "tr -d '\\r' < /protogema/arrancar.sh > /tmp/arrancar.sh && exec sh /tmp/arrancar.sh"]
+    environment:
+      CLAVE_ALMACEN: ${CLAVE_ALMACEN}
+      N8N_ENCRYPTION_KEY: ${CLAVE_CEREBRO:?Falta CLAVE_CEREBRO en .env}
+      GENERIC_TIMEZONE: ${ZONA_HORARIA:-America/Caracas}
+      TZ: ${ZONA_HORARIA:-America/Caracas}
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_SECURE_COOKIE: "false"
+      N8N_RUNNERS_ENABLED: "true"
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "48"
+      WEBHOOK_URL: http://localhost:${PUERTO_N8N:-5699}/
+    ports:
+      # Editor de n8n, solo para el desarrollador y solo desde esta computadora
+      - "127.0.0.1:${PUERTO_N8N:-5699}:5678"
+    volumes:
+      - protogema_cerebro:/home/node/.n8n
+      - ./cerebro:/protogema:ro
+
+  portal:
+    build: ./portal
+    image: protogema-portal:2.0
+    container_name: protogema-portal
+    restart: unless-stopped
+    depends_on:
+      - cerebro
+    environment:
+      CEREBRO_URL: http://cerebro:5678
+      TZ: ${ZONA_HORARIA:-America/Caracas}
+    ports:
+      - "127.0.0.1:${PUERTO_PROTOGEMA:-4646}:4646"
+    volumes:
+      # La interfaz se lee desde la carpeta: un cambio visual no obliga a reconstruir
+      - ./portal/publico:/portal/publico:ro
+
+volumes:
+  protogema_almacen:
+  protogema_cerebro:

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es" data-gema="zafiro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProtoGema · Avisos en Telegram</title>
+<link rel="icon" href="gema.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="gema.css">
+<style>
+  body { overflow-y: auto; }
+  .guia-pagina { width: min(980px, 100%); margin: 0 auto; padding: 40px 24px 70px; }
+  .guia-cabecera { display: flex; gap: 18px; align-items: center; margin-bottom: 10px; }
+  .guia-cabecera img { width: 58px; height: 58px; }
+  .guia-cabecera h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); }
+  .guia-cabecera h1 em { font-style: normal; color: var(--acento); }
+  .intro { color: var(--suave); max-width: 720px; font-size: 1.02rem; }
+  .resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 26px 0 34px; }
+  .resumen div { background: var(--capa); padding: 16px; }
+  .resumen b { display: block; font-family: var(--titulos); margin: 6px 0 2px; }
+  .resumen small { color: var(--suave); }
+  .paso-guia { display: grid; grid-template-columns: 1fr 340px; gap: 28px; align-items: start; background: var(--capa); padding: 26px; margin-bottom: 18px; }
+  .paso-guia h2 { font-size: 1.3rem; margin: 6px 0 10px; }
+  .paso-guia ol { padding-left: 20px; margin: 0; display: grid; gap: 8px; color: var(--texto); }
+  .paso-guia code { font-family: var(--mono); background: var(--capa-3); padding: 2px 6px; font-size: .88em; }
+  .numero { display: inline-grid; place-items: center; width: 38px; height: 38px; background: var(--acento); color: var(--acento-tinta); font: 800 1rem var(--titulos); clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%); }
+  .consejo { margin-top: 14px; padding: 10px 14px; background: color-mix(in srgb, var(--acento) 12%, var(--capa-2)); border-left: 3px solid var(--acento); font-size: .9rem; color: var(--suave); }
+  .consejo.alerta { background: rgba(255, 174, 31, .1); border-left-color: #ffae1f; }
+
+  /* Ilustración de un chat de mensajería (no es una captura real) */
+  .telefono { background: #0e1621; border: 8px solid #222029; border-radius: 26px; overflow: hidden; box-shadow: var(--sombra); font-family: "Segoe UI", system-ui, sans-serif; }
+  .tel-barra { background: #17212b; color: #fff; padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+  .tel-barra i { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 700; background: #5a8fd6; }
+  .tel-barra b { display: block; font-size: .92rem; }
+  .tel-barra small { color: #7f91a4; font-size: .74rem; }
+  .tel-chat { padding: 14px 10px; display: grid; gap: 8px; min-height: 230px; align-content: end;
+              background: #0e1621 radial-gradient(circle at 30% 20%, rgba(90, 143, 214, .08), transparent 60%); }
+  .msj { max-width: 85%; padding: 7px 11px 6px; border-radius: 12px; font-size: .84rem; line-height: 1.4; color: #e9edf1; }
+  .msj.yo { justify-self: end; background: #2b5278; border-bottom-right-radius: 4px; }
+  .msj.bot { justify-self: start; background: #182533; border-bottom-left-radius: 4px; }
+  .msj .resalta { background: rgba(255, 214, 102, .22); outline: 1px dashed #ffd666; padding: 0 3px; font-family: Consolas, monospace; }
+  .msj small { display: block; text-align: right; color: #6d8299; font-size: .66rem; margin-top: 2px; }
+  .pie-ilustracion { text-align: center; color: var(--tenue); font-size: .75rem; margin-top: 8px; }
+
+  /* Ilustración de los ajustes de ProtoGema */
+  .mini-ajustes { background: var(--capa-2); padding: 18px; display: grid; gap: 10px; }
+  .mini-ajustes label { font-weight: 700; font-size: .85rem; }
+  .mini-ajustes .falso { background: var(--capa); border: 1px solid var(--linea); padding: 9px 11px; font-family: var(--mono); font-size: .82rem; color: var(--suave); }
+  .mini-ajustes .falso.marcado { border-color: var(--acento); box-shadow: 0 0 0 3px var(--brillo); color: var(--texto); }
+
+  .problemas { background: var(--capa); padding: 26px; margin-top: 26px; }
+  .problemas table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: .92rem; }
+  .problemas td, .problemas th { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+  .problemas th { font: 600 .72rem var(--mono); text-transform: uppercase; letter-spacing: .12em; color: var(--tenue); }
+  .volver { margin-top: 30px; }
+  @media (max-width: 820px) { .paso-guia { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="guia-pagina">
+  <header class="guia-cabecera">
+    <img src="gema.svg" alt="">
+    <div>
+      <span class="rotulo">ProtoGema · Guía</span>
+      <h1>Recibe tus avisos en <em>Telegram</em></h1>
+    </div>
+  </header>
+  <p class="intro">
+    ProtoGema puede enviarte los recordatorios de tu agenda directamente a tu teléfono, aunque la computadora
+    esté lejos o el navegador cerrado. Solo necesitas dos cosas: un <b>bot de Telegram</b> (se crea una sola vez
+    por computadora) y tu <b>número de chat</b> (cada persona pone el suyo). Toma unos 5 minutos.
+  </p>
+
+  <section class="resumen">
+    <div class="tallado"><span class="numero">1</span><b>Crear el bot</b><small>Una vez por computadora, con @BotFather.</small></div>
+    <div class="tallado"><span class="numero">2</span><b>Pegar el token</b><small>En Ajustes de ProtoGema.</small></div>
+    <div class="tallado"><span class="numero">3</span><b>Sacar tu número</b><small>Con @userinfobot, cada persona.</small></div>
+    <div class="tallado"><span class="numero">4</span><b>Saludar al bot</b><small>Para que pueda escribirte.</small></div>
+  </section>
+
+  <!-- Paso 1 -->
+  <section class="paso-guia tallado">
+    <div>
+      <span class="numero">1</span>
+      <h2>Crea el bot de la casa</h2>
+      <ol>
+        <li>Abre Telegram (en el teléfono o en la computadora).</li>
+        <li>En el buscador escribe <b>@BotFather</b> y entra al que tiene la marca de verificación azul.</li>
+        <li>Pulsa <b>Iniciar</b> y escribe <code>/newbot</code>.</li>
+        <li>Te pide un <b>nombre</b> para mostrar, por ejemplo: <code>ProtoGema Casa</code>.</li>
+        <li>Luego te pide un <b>usuario</b> que termine en <code>bot</code>, por ejemplo: <code>protogema_casa_bot</code>.</li>
+        <li>BotFather te responde con un <b>token</b>: un texto largo con números, dos puntos y letras. <b>Cópialo.</b></li>
+      </ol>
+      <div class="consejo alerta">◆ El token es como una contraseña: no lo compartas ni lo publiques. BotFather responde en inglés; es normal.</div>
+    </div>
+    <div>
+      <div class="telefono">
+        <div class="tel-barra"><i>BF</i><div><b>BotFather</b><small>bot</small></div></div>
+        <div class="tel-chat">
+          <div class="msj yo">/newbot<small>10:02</small></div>
+          <div class="msj bot">Alright, a new bot. How are we going to call it?<small>10:02</small></div>
+          <div class="msj yo">ProtoGema Casa<small>10:03</small></div>
+          <div class="msj bot">Good. Now let's choose a username for your bot. It must end in "bot".<small>10:03</small></div>
+          <div class="msj yo">protogema_casa_bot<small>10:03</small></div>
+          <div class="msj bot">Done! … Use this token to access the HTTP API:<br><span class="resalta">7123456789:AAH4k-EjEmPlO_xYz</span><small>10:03</small></div>
+        </div>
+      </div>
+      <p class="pie-ilustracion">Ilustración de referencia. El token de la imagen es inventado.</p>
+    </div>
+  </section>
+
+  <!-- Paso 2 -->
+  <section class="paso-guia tallado">
+    <div>
+      <span class="numero">2</span>
+      <h2>Pega el token en ProtoGema</h2>
+      <ol>
+        <li>Entra a tu perfil en ProtoGema.</li>
+        <li>En el riel de la izquierda pulsa <b>⬡ Ajustes</b>.</li>
+        <li>En el panel <b>Avisos y horario</b>, pega el token en <b>Bot de Telegram de la casa</b>.</li>
+        <li>Pulsa <b>Guardar avisos</b>.</li>
+      </ol>
+      <div class="consejo">◆ Esto se hace una sola vez. Todos los perfiles de esta computadora usan el mismo bot, pero cada uno recibe solo sus propios avisos.</div>
+    </div>
+    <div class="mini-ajustes tallado">
+      <span class="rotulo">Ajustes ▸ Avisos y horario</span>
+      <label>Mi chat de Telegram</label>
+      <div class="falso">Ej.: 123456789</div>
+      <label>Bot de Telegram de la casa (compartido)</label>
+      <div class="falso marcado">7123456789:AAH4k-EjEmPlO_xYz</div>
+      <span class="boton brillante chico" style="justify-self:start">Guardar avisos</span>
+    </div>
+  </section>
+
+  <!-- Paso 3 -->
+  <section class="paso-guia tallado">
+    <div>
+      <span class="numero">3</span>
+      <h2>Saca tu número de chat</h2>
+      <ol>
+        <li>En el buscador de Telegram escribe <b>@userinfobot</b> y entra.</li>
+        <li>Pulsa <b>Iniciar</b>.</li>
+        <li>Te responde con tus datos. Copia el número que aparece junto a <b>Id</b>.</li>
+        <li>En ProtoGema pégalo en <b>Mi chat de Telegram</b> (o en <b>Tu chat de Telegram</b> si estás creando tu perfil) y guarda.</li>
+      </ol>
+      <div class="consejo">◆ Cada persona que use ProtoGema hace este paso con su propia cuenta de Telegram.</div>
+    </div>
+    <div>
+      <div class="telefono">
+        <div class="tel-barra"><i style="background:#3fa66b">UI</i><div><b>userinfobot</b><small>bot</small></div></div>
+        <div class="tel-chat">
+          <div class="msj yo">/start<small>10:05</small></div>
+          <div class="msj bot">@tu_usuario<br>Id: <span class="resalta">123456789</span><br>First: Tu nombre<br>Lang: es<small>10:05</small></div>
+        </div>
+      </div>
+      <p class="pie-ilustracion">Ilustración de referencia. El número es un ejemplo.</p>
+    </div>
+  </section>
+
+  <!-- Paso 4 -->
+  <section class="paso-guia tallado">
+    <div>
+      <span class="numero">4</span>
+      <h2>Salúdalo una vez</h2>
+      <ol>
+        <li>Busca en Telegram el usuario de tu bot (por ejemplo <b>@protogema_casa_bot</b>).</li>
+        <li>Pulsa <b>Iniciar</b> o escríbele cualquier cosa, como "hola".</li>
+      </ol>
+      <div class="consejo alerta">◆ Este paso es obligatorio: Telegram no permite que un bot le escriba primero a una persona.</div>
+      <h2 style="margin-top:22px">¿Cómo lo pruebo?</h2>
+      <ol>
+        <li>En el chat de ProtoGema escribe: <i>"agéndame probar Telegram en 15 minutos y avísame 10 minutos antes"</i>.</li>
+        <li>En unos 5 minutos te llegará el aviso al teléfono, y otro a la hora exacta.</li>
+      </ol>
+    </div>
+    <div>
+      <div class="telefono">
+        <div class="tel-barra"><i style="background:#c2416a">PG</i><div><b>ProtoGema Casa</b><small>bot</small></div></div>
+        <div class="tel-chat">
+          <div class="msj yo">hola<small>10:06</small></div>
+          <div class="msj bot">💎 Probar Telegram<br>Empieza hoy a las 10:21 a. m. (faltan 10 min)<small>10:11</small></div>
+          <div class="msj bot">💎 Es la hora: Probar Telegram<br>Empieza ahora<small>10:21</small></div>
+        </div>
+      </div>
+      <p class="pie-ilustracion">Así se ven los avisos de ProtoGema en Telegram.</p>
+    </div>
+  </section>
+
+  <!-- Cómo funciona -->
+  <section class="problemas tallado">
+    <h2 style="font-size:1.3rem">¿Cómo funciona?</h2>
+    <p class="suave">Cada minuto, ProtoGema revisa la agenda de todos los perfiles. Cuando llega el momento de un aviso
+      (por ejemplo, un día antes, una hora antes o a la hora exacta), lo muestra en la campana de ProtoGema y, si el perfil
+      tiene su número de chat, el bot de la casa se lo envía a su Telegram. La computadora con ProtoGema debe estar
+      encendida y con internet para que salgan los avisos.</p>
+
+    <h2 style="font-size:1.3rem;margin-top:22px">Si no te llegan los avisos</h2>
+    <table>
+      <tr><th>Qué pasa</th><th>Qué hacer</th></tr>
+      <tr><td>No llega nada</td><td>Revisa que le escribiste "hola" a tu bot (paso 4) y que el número de chat esté guardado sin espacios.</td></tr>
+      <tr><td>Llegan a otra persona</td><td>El número de chat de tu perfil es el de otra cuenta. Vuelve a sacarlo con @userinfobot.</td></tr>
+      <tr><td>Dejaron de llegar</td><td>Puede que el token haya cambiado. Pide uno nuevo a @BotFather con <code>/token</code> y pégalo de nuevo en Ajustes.</td></tr>
+      <tr><td>Llegan tarde o no llegan</td><td>La computadora estaba apagada, suspendida o sin internet. Los avisos salen mientras ProtoGema está encendida.</td></tr>
+    </table>
+  </section>
+
+  <div class="volver"><a class="boton brillante" href="/">◆ Volver a ProtoGema</a></div>
+</main>
+<script>
+  // La guía toma el color de la última gema usada, si se puede
+  try { const g = localStorage.getItem('protogema.gema'); if (g) document.documentElement.dataset.gema = g;
+        if (localStorage.getItem('protogema.luz') === 'clara') document.documentElement.dataset.luz = 'clara'; } catch (e) {}
+</script>
+</body>
+</html>

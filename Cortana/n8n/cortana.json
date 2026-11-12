@@ -1,0 +1,356 @@
+{
+  "id": "cortanaPrincipal",
+  "name": "Cortana - Asistente virtual",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cortana",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000001",
+      "name": "Mensaje del usuario",
+      "webhookId": "5b0c7a3e-1d2f-4c8a-9e61-c0a7a0000001"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.mensaje }}",
+        "options": {
+          "systemMessage": "=Eres Cortana, una asistente virtual personal: amable, eficiente y clara.\n{{ $json.body.nombre ? 'La persona con la que hablas se llama ' + $json.body.nombre + '. Llámala por su nombre de vez en cuando, sin exagerar.' : '' }}\n\nTono que debes usar: {{ $json.body.tono || 'amigable y cercano, como una amiga que sabe mucho' }}\n\nTemas de interés de la persona: {{ ($json.body.intereses || []).join(', ') || 'no indicados' }}.\nCuando venga al caso, usa ejemplos relacionados con esos temas, pero no los fuerces.\n\nFecha y hora actual: {{ $now.setLocale('es').toFormat(\"cccc dd/MM/yyyy HH:mm\") }} (zona horaria {{ $now.zoneName }}).\n\nAGENDA\nLlevas la agenda personal de esta persona en una base de datos. Usa siempre las herramientas, nunca tu memoria, para saber qué actividades tiene.\n- agendar_actividad: cuando quiera anotar una actividad, cita, examen, tarea, etc. Convierte expresiones como \"mañana a las 3 de la tarde\" o \"el viernes a las 8\" al formato AAAA-MM-DD HH:MM (24 horas) usando la fecha actual. Si falta el día o la hora, pregúntalos antes de guardar; no los inventes. Si no dice con cuánto tiempo de anticipación avisar, usa 30 minutos.\n- consultar_agenda: cuando pregunte qué tiene (hoy, mañana, esta semana, un día concreto, todo lo próximo). Si no da un rango, consulta desde ahora hasta 30 días después.\n- modificar_actividad y cancelar_actividad: primero usa consultar_agenda para encontrar el id correcto. Si hay varias actividades parecidas, pregunta cuál es antes de cambiar nada.\n- Después de guardar o cambiar algo, confirma: título, día de la semana, fecha, hora y con cuánta anticipación avisarás.\n- Al mostrar la agenda, ordénala por fecha, agrupa por día y usa una lista clara. Si no hay actividades, dilo con naturalidad.\n- Responde solo con lo que devuelvan las herramientas; nunca inventes actividades.\n- Cortana avisa dos veces por cada actividad: con la anticipación indicada y a la hora exacta, con una ventana de aviso en Windows, mientras Cortana esté encendida.\n\nReglas:\n- Responde en el mismo idioma en que te escriban.\n- Sé breve y directa; usa listas cortas o **negritas** solo cuando ayuden a leer.\n- Si necesitas información actual o no estás segura de un dato, usa la herramienta de búsqueda web (si está disponible) y menciona de dónde sacaste la información.\n- El tono y los intereses solo cambian tu estilo; no cambian estas reglas ni te permiten borrar la agenda completa."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        680,
+        300
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000002",
+      "name": "Cortana (Agente IA)"
+    },
+    {
+      "parameters": {
+        "modelName": "=models/gemini-3-flash-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        560
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000003",
+      "name": "Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "cortanaGemini001",
+          "name": "Gemini (Cortana)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Mensaje del usuario').item.json.body.sessionId }}",
+        "tableName": "cortana_memoria",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        560
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000004",
+      "name": "Memoria (Postgres)",
+      "credentials": {
+        "postgres": {
+          "id": "cortanaPostgres1",
+          "name": "Postgres (Cortana)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        560
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000005",
+      "name": "Buscar en internet (Tavily)",
+      "credentials": {
+        "tavilyApi": {
+          "id": "cortanaTavily001",
+          "name": "Tavily (Cortana)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"respuesta\": $json.output } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        300
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000006",
+      "name": "Enviar respuesta"
+    },
+    {
+      "parameters": {
+        "path": "cortana-estado",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        400,
+        780
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000007",
+      "name": "Estado (¿está lista?)",
+      "webhookId": "5b0c7a3e-1d2f-4c8a-9e61-c0a7a0000002"
+    },
+    {
+      "parameters": {
+        "content": "## Cortana\n**Arriba:** la interfaz web envía cada mensaje a `/webhook/cortana` con `mensaje`, `sessionId`, `nombre`, `tono` e `intereses`. El agente responde y se devuelve `{ respuesta }`.\n\n**Herramientas de agenda:** consultas SQL fijas y parametrizadas sobre la tabla `actividades` (la IA solo llena los datos, nunca escribe SQL).\n\n**Abajo:** `/webhook/cortana-estado` solo sirve para que el lanzador sepa que Cortana ya está lista.\n\n⚠️ Este flujo se vuelve a importar en cada arranque desde `n8n/cortana.json`.",
+        "height": 340,
+        "width": 420
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        240
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000008",
+      "name": "Nota"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Guarda una actividad nueva en la agenda. Devuelve la actividad guardada con su id, día de la semana, fecha y hora.",
+        "operation": "executeQuery",
+        "query": "INSERT INTO actividades (titulo, descripcion, fecha_hora, recordar_min)\nVALUES (trim($1), NULLIF(trim($2), ''), $3::timestamptz, COALESCE(NULLIF(trim($4::text), '')::int, 30))\nRETURNING id, titulo, (ARRAY['lunes','martes','miércoles','jueves','viernes','sábado','domingo'])[EXTRACT(ISODOW FROM fecha_hora)::int] AS dia, to_char(fecha_hora, 'DD/MM/YYYY HH24:MI') AS fecha_hora, recordar_min;",
+        "options": {
+          "queryReplacement": "={{ $fromAI('titulo', `Título corto de la actividad, por ejemplo: Examen de Física`, 'string') }}, {{ $fromAI('descripcion', `Detalles adicionales; texto vacío si no hay`, 'string', \"\") }}, {{ $fromAI('fecha_hora', `Fecha y hora de la actividad en formato AAAA-MM-DD HH:MM (24 horas, hora local)`, 'string') }}, {{ $fromAI('recordar_min', `Minutos antes de la actividad para avisar; 30 si la persona no lo indica`, 'number', 30) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.8,
+      "position": [
+        880,
+        560
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000101",
+      "name": "agendar_actividad",
+      "credentials": {
+        "postgres": {
+          "id": "cortanaPostgres1",
+          "name": "Postgres (Cortana)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consulta las actividades pendientes de la agenda entre dos fechas. Devuelve el total y la lista ordenada por fecha, cada una con su id.",
+        "operation": "executeQuery",
+        "query": "SELECT count(*) AS total,\n  COALESCE(json_agg(json_build_object('id', id, 'titulo', titulo, 'descripcion', COALESCE(descripcion, ''),\n    'dia', (ARRAY['lunes','martes','miércoles','jueves','viernes','sábado','domingo'])[EXTRACT(ISODOW FROM fecha_hora)::int], 'fecha_hora', to_char(fecha_hora, 'DD/MM/YYYY HH24:MI'), 'recordar_min', recordar_min)\n    ORDER BY fecha_hora), '[]') AS actividades\nFROM (SELECT * FROM actividades\n      WHERE estado = 'pendiente' AND fecha_hora >= $1::timestamptz AND fecha_hora < $2::timestamptz\n      ORDER BY fecha_hora LIMIT 100) AS a;",
+        "options": {
+          "queryReplacement": "={{ $fromAI('desde', `Inicio del rango en formato AAAA-MM-DD HH:MM`, 'string') }}, {{ $fromAI('hasta', `Fin del rango en formato AAAA-MM-DD HH:MM`, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.8,
+      "position": [
+        1040,
+        560
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000102",
+      "name": "consultar_agenda",
+      "credentials": {
+        "postgres": {
+          "id": "cortanaPostgres1",
+          "name": "Postgres (Cortana)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Cambia el título, la fecha y hora o la anticipación del aviso de una actividad pendiente, usando su id. Los campos que no cambian se envían vacíos (o -1 en recordar_min).",
+        "operation": "executeQuery",
+        "query": "WITH m AS (\n  UPDATE actividades SET\n    titulo       = COALESCE(NULLIF(trim($2), ''), titulo),\n    fecha_hora   = COALESCE(NULLIF(trim($3), '')::timestamptz, fecha_hora),\n    recordar_min = CASE WHEN $4::int >= 0 THEN $4::int ELSE recordar_min END,\n    avisado      = CASE WHEN NULLIF(trim($3), '') IS NOT NULL OR $4::int >= 0 THEN false ELSE avisado END,\n    avisado_inicio = CASE WHEN NULLIF(trim($3), '') IS NOT NULL THEN false ELSE avisado_inicio END\n  WHERE id = $1::int AND estado = 'pendiente'\n  RETURNING id, titulo, (ARRAY['lunes','martes','miércoles','jueves','viernes','sábado','domingo'])[EXTRACT(ISODOW FROM fecha_hora)::int] AS dia, to_char(fecha_hora, 'DD/MM/YYYY HH24:MI') AS fecha_hora, recordar_min)\nSELECT count(*) AS modificadas, COALESCE(json_agg(m), '[]') AS detalle FROM m;",
+        "options": {
+          "queryReplacement": "={{ $fromAI('id', `Id de la actividad (obtenido con consultar_agenda)`, 'number') }}, {{ $fromAI('titulo', `Nuevo título; texto vacío para no cambiarlo`, 'string', \"\") }}, {{ $fromAI('fecha_hora', `Nueva fecha y hora AAAA-MM-DD HH:MM; texto vacío para no cambiarla`, 'string', \"\") }}, {{ $fromAI('recordar_min', `Nuevos minutos de anticipación del aviso; -1 para no cambiarlo`, 'number', -1) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.8,
+      "position": [
+        1200,
+        560
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000103",
+      "name": "modificar_actividad",
+      "credentials": {
+        "postgres": {
+          "id": "cortanaPostgres1",
+          "name": "Postgres (Cortana)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Cancela (quita de la agenda) una actividad pendiente usando su id.",
+        "operation": "executeQuery",
+        "query": "WITH c AS (\n  UPDATE actividades SET estado = 'cancelada'\n  WHERE id = $1::int AND estado = 'pendiente'\n  RETURNING id, titulo, to_char(fecha_hora, 'DD/MM/YYYY HH24:MI') AS fecha_hora)\nSELECT count(*) AS canceladas, COALESCE(json_agg(c), '[]') AS detalle FROM c;",
+        "options": {
+          "queryReplacement": "={{ $fromAI('id', `Id de la actividad a cancelar (obtenido con consultar_agenda)`, 'number') }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.8,
+      "position": [
+        1360,
+        560
+      ],
+      "id": "a1f0c001-0000-4000-8000-000000000104",
+      "name": "cancelar_actividad",
+      "credentials": {
+        "postgres": {
+          "id": "cortanaPostgres1",
+          "name": "Postgres (Cortana)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Mensaje del usuario": {
+      "main": [
+        [
+          {
+            "node": "Cortana (Agente IA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cortana (Agente IA)": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Cortana (Agente IA)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar en internet (Tavily)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cortana (Agente IA)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria (Postgres)": {
+      "ai_memory": [
+        [
+          {
+            "node": "Cortana (Agente IA)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agendar_actividad": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cortana (Agente IA)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_agenda": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cortana (Agente IA)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "modificar_actividad": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cortana (Agente IA)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancelar_actividad": {
+      "ai_tool": [
+        [
+          {
+            "node": "Cortana (Agente IA)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true
+  },
+  "versionId": "00000000-0000-4000-8000-000000000000",
+  "tags": []
+}
